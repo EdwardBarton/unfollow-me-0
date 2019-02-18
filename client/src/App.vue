@@ -1,31 +1,74 @@
 <template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+  <div class="home">
+    <button v-if="Object.keys(user).length === 0" @click="startAuth">
+      Twitter Auth
+    </button>
+    <div v-else>
+      <h1>{{ user.displayName }}</h1>
+      <ul v-show="user.friends.length > 0">
+        <li v-for="f in user.friends" :key="f.id">{{ f.name }}</li>
+      </ul>
     </div>
-    <router-view />
   </div>
 </template>
 
-<style>
-#app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-#nav {
-  padding: 30px;
-}
+<script>
+import { mapState } from "vuex";
+import io from "socket.io-client";
+const API_URL = "http://127.0.0.1:8001";
+const socket = io(API_URL);
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
+export default {
+  data() {
+    return {
+      popup: null,
+      disabled: ""
+    };
+  },
+  mounted() {
+    socket.on("user", user => {
+      this.popup.close();
+      this.$store.state.user = user;
+    });
+  },
+  computed: mapState({
+    user: "user"
+  }),
+  methods: {
+    checkPopup() {
+      const check = setInterval(() => {
+        const { popup } = this;
+        if (!popup || popup.closed || popup.closed === undefined) {
+          clearInterval(check);
+          this.disabled = "";
+        }
+      }, 1000);
+    },
+    openPopup() {
+      const width = 600;
+      const height = 600;
+      const left = window.innerWidth / 2 - width / 2;
+      const top = window.innerHeight / 2 - height / 2;
 
-#nav a.router-link-exact-active {
-  color: #42b983;
-}
-</style>
+      const url = `${API_URL}/api/auth/twitter?socketId=${socket.ids}`;
+
+      return window.open(
+        url,
+        "",
+        `toolbar=no, location=no, directories=no, status=no, menubar=no, 
+      scrollbars=no, resizable=no, copyhistory=no, width=${width}, 
+      height=${height}, top=${top}, left=${left}`
+      );
+    },
+    startAuth() {
+      if (!this.disabled) {
+        this.popup = this.openPopup();
+        this.checkPopup();
+        this.disabled = "disabled";
+      }
+    }
+  }
+};
+</script>
+
+<style></style>
