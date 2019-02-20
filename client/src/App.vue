@@ -5,9 +5,13 @@
     </button>
     <div v-else>
       <h1>{{ user.displayName }}</h1>
-      <ul v-show="user.friends.length > 0">
-        <li v-for="f in user.friends" :key="f.id">{{ f.name }}</li>
-      </ul>
+      <div class="friends-list" v-show="user.friendsToUnfollow.length > 0">
+        <div class="friend" v-for="f in user.friendsToUnfollow" :key="f.id">
+          <img :src="f.profile_image_url" :alt="f.name" />
+          <h3>{{ f.name }}</h3>
+          <button>Unfollow</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -71,4 +75,23 @@ export default {
 };
 </script>
 
-<style></style>
+<style scope>
+.friends-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.friend {
+  text-align: center;
+  padding-top: 25px;
+  height: 200px;
+  width: 150px;
+  border: 1px solid black;
+  margin: 10px 0;
+}
+
+img {
+  border-radius: 50%;
+}
+</style>
