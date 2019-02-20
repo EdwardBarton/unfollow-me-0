@@ -57,16 +57,37 @@ const twitterAuth = passport.authenticate('twitter');
 
 app.get('/api/auth/twitter', twitterAuth);
 
-app.get('/api/auth/twitter/callback', twitterAuth, (req, res) => {
-  const user = req.user;
-  const params = { user_id: user.id, count: 200 };
-  twitter.get('friends/list', params, (error, resp) => {
-    if (!error) {
-      user.friends = resp.users;
+app.get('/api/auth/twitter/callback', twitterAuth, async (req, res) => {
+  req.user.friendsToUnfollow = []; // req.user === auth'd Twitter user
+
+  // Get user's friends
+  const params = { user_id: req.user.id, count: 200 };
+  const friendsResp = await twitter.get('friends/list', params).catch(err => {
+    console.log('GET friends/list error', err);
+  });
+  let friends = friendsResp.users;
+
+  // Loop through friends
+  friends.forEach(async friend => {
+    const params = {
+      source_screen_name: friend.screen_name,
+      target_screen_name: 'realDonaldTrump'
+    };
+    // Determine relationship w/ target celebrity
+    const friendshipsResp = await twitter
+      .get('friendships/show', params)
+      .catch(err => {
+        console.log('GET friendships/show error', err);
+      });
+    const relationship = friendshipsResp.relationship;
+    // If friend follows target, add them to unfollow list
+    if (relationship.target.followed_by === true) {
+      req.user.friendsToUnfollow.push(friend);
       io.emit('user', req.user);
-      res.end();
     }
   });
+
+  res.end();
 });
 
 const port = process.env.PORT || 8001;
